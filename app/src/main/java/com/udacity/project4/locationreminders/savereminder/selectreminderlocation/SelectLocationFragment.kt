@@ -3,22 +3,17 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.annotation.TargetApi
-import android.app.Activity
 import android.content.ContentValues.TAG
-import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
-import com.google.android.gms.common.api.ApiException
+import androidx.navigation.fragment.findNavController
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.location.LocationRequest.PRIORITY_LOW_POWER
@@ -34,7 +29,6 @@ import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
-import kotlinx.android.synthetic.main.fragment_select_location.*
 import org.koin.android.ext.android.inject
 import java.util.*
 
@@ -44,7 +38,6 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSelectLocationBinding
     private val ENABLE_LOCATION_PERMISSION=2
-    private val REQUEST_CODE_BACKGROUND=50
     private lateinit var map: GoogleMap
     private val DEFAULT_ZOOM=15f
     private lateinit var poi: PointOfInterest
@@ -82,7 +75,7 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
             if (::poi.isInitialized){
                 onLocationSelected()
             }else{
-                Toast.makeText(requireContext(), "please select POI ", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "please select POI or location", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -105,20 +98,22 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
                         requireActivity(),
                         ENABLE_LOCATION_PERMISSION
                     )
+
                 } catch (sendEx: IntentSender.SendIntentException) {
                     Log.d(TAG, "Error getting location settings resolution: " + sendEx.message)
                 }
-            } else {
+            }
+            else {
                 Snackbar.make(
                     view!!,
                     R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
                 ).setAction(android.R.string.ok) {
+                    getDeviceLocation()
                     checkDeviceLocationSettingsAndStartGeofence()
                 }.show()
             }
 
         }
-
     }
 
 
@@ -185,31 +180,32 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
         map = googleMap
         setMapStyle(map)
         enableMyLocation()
-//        setOnMapLongClickListener(googleMap)
+        setOnMapLongClickListener(googleMap)
         setPoiClick(googleMap)
-        Toast.makeText(requireContext(), "please select POI ", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "please select POI or location", Toast.LENGTH_SHORT).show()
     }
 
-//    private fun setOnMapLongClickListener(map:GoogleMap){
-//        map.setOnMapLongClickListener {
-//            if (::marker.isInitialized){
-//                marker.remove()
-//            }
-//            val snippet = String.format(
-//                Locale.getDefault(),
-//                "Lat: %1$.5f, Long: %2$.5f",
-//                it.latitude,
-//                it.longitude
-//            )
-//            marker=map.addMarker(
-//                MarkerOptions()
-//                    .position(it)
-//                    .title(getString(R.string.dropped_pin))
-//                    .snippet(snippet)
-//            )
-//
-//        }
-//    }
+    private fun setOnMapLongClickListener(map:GoogleMap){
+        map.setOnMapLongClickListener {
+            if (::marker.isInitialized){
+                marker.remove()
+            }
+            val snippet = String.format(
+                Locale.getDefault(),
+                "Lat: %1$.5f, Long: %2$.5f",
+                it.latitude,
+                it.longitude
+            )
+            marker=map.addMarker(
+                MarkerOptions()
+                    .position(it)
+                    .title(getString(R.string.dropped_pin))
+                    .snippet(snippet)
+            )
+            poi= PointOfInterest(LatLng(it.latitude,it.longitude),marker.title,marker.title)
+
+        }
+    }
     private fun setPoiClick(map: GoogleMap) {
         map.setOnPoiClickListener { poi ->
             if(::marker.isInitialized){
@@ -231,22 +227,17 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
             == PackageManager.PERMISSION_GRANTED) {
             return true
         }
-        ActivityCompat.requestPermissions(requireActivity(), arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+        requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
             ENABLE_LOCATION_PERMISSION)
-
         return false
     }
 
     @SuppressLint("MissingPermission")
     private fun enableMyLocation() {
         if (isPermissionGranted()) {
+            checkDeviceLocationSettingsAndStartGeofence()
             map.isMyLocationEnabled = true
             getDeviceLocation()
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                checkDeviceLocationSettingsAndStartGeofence()
-            } else {
-                requestQPermission()
-            }
         }
     }
 
@@ -281,6 +272,7 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
                                     .title(getString(R.string.dropped_pin))
                                     .snippet(snippet)
                             )
+                            poi=PointOfInterest(marker.position,marker.title,marker.title)
                         }
                     }
                 }
@@ -290,36 +282,21 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
         }
     }
 
+
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
         grantResults: IntArray) {
-        if (requestCode == REQUEST_CODE_BACKGROUND) {
-            checkDeviceLocationSettingsAndStartGeofence()
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.Q)
-    private fun requestQPermission() {
-        val hasForegroundPermission = ActivityCompat.checkSelfPermission(
-            activity!!,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (hasForegroundPermission) {
-            val hasBackgroundPermission = ActivityCompat.checkSelfPermission(
-                activity!!,
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-            if (hasBackgroundPermission) {
+        if (requestCode == ENABLE_LOCATION_PERMISSION) {
+            if (grantResults.isNotEmpty() && grantResults[0]==PackageManager.PERMISSION_GRANTED){
                 checkDeviceLocationSettingsAndStartGeofence()
-            } else {
-                ActivityCompat.requestPermissions(
-                    activity!!,
-                    arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
-                    REQUEST_CODE_BACKGROUND
-                )
+            }
+            else{
+                Toast.makeText(requireContext(), "we need location permission to select your reminder location", Toast.LENGTH_SHORT).show()
+                findNavController().popBackStack()
             }
         }
     }
+
 }

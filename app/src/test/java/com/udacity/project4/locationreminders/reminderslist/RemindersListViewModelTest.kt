@@ -106,14 +106,26 @@ class RemindersListViewModelTest {
     }
 
     @Test
-    fun loadReminders_shouldReturnError_ReminderListIsNull(){
+    fun loadReminders_ReminderListIsNull(){
         //Given
-        remindersListViewModel= RemindersListViewModel(ApplicationProvider.getApplicationContext(),FakeDataSource(null))
+        fakeDataSource.reminders=null
         //When
         remindersListViewModel.loadReminders()
         //Then
         val value=remindersListViewModel.showSnackBar.getOrAwaitValue()
         assertThat(value, `is`("reminders not found"))
+    }
+
+
+    @Test
+    fun loadReminders_shouldReturnError_testError(){
+        //Given
+        fakeDataSource.setReturnError(true)
+        //When
+        remindersListViewModel.loadReminders()
+        //Then
+        val value=remindersListViewModel.showSnackBar.getOrAwaitValue()
+        assertThat(value, `is`("Test Exception"))
     }
 
 

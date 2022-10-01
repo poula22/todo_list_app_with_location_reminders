@@ -93,4 +93,13 @@ class RemindersLocalRepositoryTest {
         val result=(localDataSource.getReminders() as Result.Success).data
         assertThat(result.size,`is`(0))
     }
+
+
+    @Test
+    fun getReminder_fakeId()= mainCoroutineRule.runBlockingTest {
+        //When
+        val value=localDataSource.getReminder("fake") as Result.Error
+        //Then
+        assertThat(value.message,`is`("Reminder not found!"))
+    }
 }

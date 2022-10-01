@@ -7,11 +7,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 //Use FakeDataSource that acts as a test double to the LocalDataSource
-class FakeDataSource(val reminders:MutableList<ReminderDTO>?= mutableListOf()) : ReminderDataSource {
+class FakeDataSource(var reminders:MutableList<ReminderDTO>?= mutableListOf()) : ReminderDataSource {
 
-//     Create a fake data source to act as a double to the real data source
+    //     Create a fake data source to act as a double to the real data source
+
+    private var shouldReturnError = false
+
+    fun setReturnError(value: Boolean) {
+        shouldReturnError = value
+    }
 
     override suspend fun getReminders(): Result<List<ReminderDTO>>  {
+        if(shouldReturnError){
+            return Result.Error("Test Exception")
+        }
         reminders?.let { return Result.Success(it) }
         return Result.Error("reminders not found")
     }
@@ -22,6 +31,9 @@ class FakeDataSource(val reminders:MutableList<ReminderDTO>?= mutableListOf()) :
 
 
     override suspend fun getReminder(id: String): Result<ReminderDTO> {
+        if(shouldReturnError){
+            return Result.Error("Test Exception")
+        }
         reminders?.forEach {
             if (it.id==id) return Result.Success(it)
         }
