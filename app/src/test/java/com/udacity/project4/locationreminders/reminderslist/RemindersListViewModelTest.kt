@@ -32,7 +32,6 @@ class RemindersListViewModelTest {
     /* here we will test loadReminder function in 3 cases:
     -reminder list is empty
     -reminder list is not empty
-    -reminder list is null
     */
 
     private lateinit var fakeDataSource: FakeDataSource
@@ -105,16 +104,16 @@ class RemindersListViewModelTest {
 
     }
 
-    @Test
-    fun loadReminders_ReminderListIsNull(){
-        //Given
-        fakeDataSource.reminders=null
-        //When
-        remindersListViewModel.loadReminders()
-        //Then
-        val value=remindersListViewModel.showSnackBar.getOrAwaitValue()
-        assertThat(value, `is`("reminders not found"))
-    }
+//    @Test
+//    fun loadReminders_ReminderListIsNull(){
+//        //Given
+//        fakeDataSource.reminders=null
+//        //When
+//        remindersListViewModel.loadReminders()
+//        //Then
+//        val value=remindersListViewModel.showSnackBar.getOrAwaitValue()
+//        assertThat(value, `is`("reminders not found"))
+//    }
 
 
     @Test

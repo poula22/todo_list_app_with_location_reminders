@@ -125,7 +125,7 @@ class ReminderListFragmentTest {
     @Test
     fun errorSnackBack() = mainCoroutineRule.runBlockingTest {
         //When
-        fakeDataSource.reminders=null
+        fakeDataSource.setReturnError(true)
         launchFragmentInContainer<ReminderListFragment>(Bundle(), R.style.AppTheme)
 
         //Then
@@ -133,7 +133,7 @@ class ReminderListFragmentTest {
             .check(matches(isDisplayed()))
 
         onView(withId(R.id.snackbar_text))
-            .check(matches(withText("reminders not found")))
+            .check(matches(withText("Test Exception")))
     }
 
 }
