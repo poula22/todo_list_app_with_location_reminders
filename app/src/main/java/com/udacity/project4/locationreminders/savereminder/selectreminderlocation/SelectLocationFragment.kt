@@ -284,17 +284,18 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback {
 
 
 
+    @SuppressLint("MissingPermission")
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
         grantResults: IntArray) {
         if (requestCode == ENABLE_LOCATION_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0]==PackageManager.PERMISSION_GRANTED){
+                map.isMyLocationEnabled = true
                 checkDeviceLocationSettingsAndStartGeofence()
             }
             else{
                 Toast.makeText(requireContext(), "we need location permission to select your reminder location", Toast.LENGTH_SHORT).show()
-                findNavController().popBackStack()
             }
         }
     }
